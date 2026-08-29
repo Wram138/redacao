@@ -128,3 +128,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'lista_pautas' # Redireciona para a tela inicial
 LOGOUT_REDIRECT_URL = 'login'       # Redireciona para o login ao sair
+
+DEBUG = False # Segurança vital em produção
+ALLOWED_HOSTS = ['jornal.alecrim.tec.br', '127.0.0.1']
+
+# Configuração para o Nginx servir os arquivos estáticos (CSS, imagens do painel admin)
+import os
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
