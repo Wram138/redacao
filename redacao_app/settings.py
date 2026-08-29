@@ -129,7 +129,7 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'lista_pautas' # Redireciona para a tela inicial
 LOGOUT_REDIRECT_URL = 'login'       # Redireciona para o login ao sair
 
-DEBUG = False # Segurança vital em produção
+DEBUG = True # Segurança vital em produção
 ALLOWED_HOSTS = ['jornal.alecrim.tec.br', '127.0.0.1']
 
 CSRF_TRUSTED_ORIGINS = [

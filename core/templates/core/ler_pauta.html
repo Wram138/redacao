@@ -5,55 +5,138 @@
     <title>Pauta: {{ pauta.retranca }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f4f6f9; }
+        body { background-color: #f4f6f9; color: #000; font-family: 'Arial', sans-serif; font-size: 13px; }
         .documento-pauta {
             background: white;
-            border-radius: 8px;
-            padding: 40px;
+            border-radius: 4px;
+            padding: 20px 30px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
         }
-        
+
+        /* Justificação e espaçamento compacto para blocos de texto rico */
+        .texto-justificado {
+            text-align: justify;
+            line-height: 1.4;
+        }
+
+        /* Estilo corporativo de tabela */
+        .tabela-pauta {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        .tabela-pauta th, .tabela-pauta td {
+            border: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+        }
+        .tabela-pauta th {
+            background-color: #f1f1f1;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        /* Otimização estrita para caber em 1 página A4 sem espaços vazios */
         @media print {
-            body { background-color: white; }
+            body { background-color: white; font-size: 11pt; }
             .d-print-none { display: none !important; } 
-            .documento-pauta { box-shadow: none; padding: 0; }
-            @page { size: A4; margin: 20mm; }
+            .documento-pauta { box-shadow: none; padding: 0; border: none; max-width: 100%; margin: 0; }
+            .tabela-pauta th { background-color: #e6e6e6 !important; -webkit-print-color-adjust: exact; }
+            @page { size: A4; margin: 10mm; }
         }
     </style>
 </head>
 <body class="container py-5">
 
     <div class="documento-pauta">
-        <!-- Cabeçalho do Documento -->
-        <div class="d-flex justify-content-between border-bottom pb-3 mb-4">
+        <!-- Cabeçalho Institucional -->
+        <div class="border-bottom pb-3 mb-4 d-flex justify-content-between align-items-end">
             <div>
-                <h2 class="fw-bold text-uppercase mb-1">{{ pauta.retranca }}</h2>
-                <p class="text-muted mb-0 fs-5">{{ pauta.titulo }}</p>
+                <span class="text-muted small text-uppercase fw-bold">Sistema de Redação</span>
+                <h2 class="fw-bold text-uppercase m-0 text-dark">{{ pauta.retranca }}</h2>
             </div>
             <div class="text-end">
-                <span class="badge bg-secondary mb-2 fs-6">ID: #PT-{{ pauta.id }}</span>
-                <p class="text-muted small mb-0">Produtor: {{ pauta.criada_por.username }}<br>{{ pauta.data_criacao|date:"d/m/Y H:i" }}</p>
+                <span class="badge bg-dark mb-1">ID: #PT-{{ pauta.id }}</span>
+                <p class="text-muted small m-0">Data da Pauta: {{ pauta.data|date:"d/m/Y"|default:"Não definida" }}</p>
             </div>
         </div>
 
-        <!-- Conteúdo da Pauta -->
-        <div class="fs-5 lh-lg mb-5">
-            {{ pauta.descricao|linebreaks }}
+        <!-- Informações de Atribuição -->
+        <div class="row mb-3 small text-muted bg-light p-2 border rounded">
+            <div class="col-md-6">
+                <strong>Produtor:</strong> {{ pauta.criada_por.username }} ({{ pauta.data_criacao|date:"d/m/Y H:i" }})
+            </div>
+            <div class="col-md-6 text-md-end">
+                <strong>Repórter Atribuído:</strong> <span class="text-dark fw-bold">{{ pauta.reporter_atribuido.username|default:"Não atribuído" }}</span>
+            </div>
+            {% if pauta.editado_por %}
+                <div class="col-12 mt-1 text-secondary">
+                    <em>Última alteração por {{ pauta.editado_por.username }} em {{ pauta.data_edicao|date:"d/m/Y H:i" }}</em>
+                </div>
+            {% endif %}
         </div>
 
-        <!-- Barra de Ações Inferior (Oculta na impressão) -->
-        <div class="d-flex gap-3 pt-4 border-top d-print-none">
-            <a href="{% url 'lista_pautas' %}" class="btn btn-outline-secondary">⬅️ Voltar</a>
+        <!-- Tabela de Agendas (Estilo Word) -->
+        <div class="mb-3">
+            <h5 class="fw-bold fs-6 text-uppercase border-bottom pb-1 mb-2">Cronograma e Locais</h5>
+            <table class="tabela-pauta">
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">Local</th>
+                        <th style="width: 20%;">Horário</th>
+                        <th style="width: 45%;">Entrevistados / Contatos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for agenda in pauta.agendas.all %}
+                        <tr>
+                            <td>{{ agenda.local|default:"-" }}</td>
+                            <td>{{ agenda.horario|time:"H:i"|default:"-" }}</td>
+                            <td>{{ agenda.entrevistados|default:"-" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">Nenhuma agenda específica cadastrada.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Direcionamento -->
+        <div class="mb-3">
+            <h5 class="fw-bold fs-6 text-uppercase border-bottom pb-1 mb-2">Direcionamento</h5>
+            <div class="p-3 bg-light border rounded texto-justificado">{{ pauta.direcionamento|safe }}</div>
+        </div>
+
+        <!-- Informações -->
+        <div class="mb-3">
+            <h5 class="fw-bold fs-6 text-uppercase border-bottom pb-1 mb-2">Informações</h5>
+            <div class="p-3 bg-light border rounded texto-justificado">{{ pauta.informacoes|safe }}</div>
+        </div>
+
+        <!-- Barra de Ações Inferior (Oculta no PDF) -->
+        <div class="d-flex gap-2 pt-3 border-top d-print-none">
+            <a href="{% url 'lista_pautas' %}" class="btn btn-outline-secondary btn-sm">⬅️ Voltar</a>
             
-            <button class="btn btn-dark" onclick="window.print()">🖨️ Imprimir A4</button>
+            <button class="btn btn-dark btn-sm" onclick="window.print()">📄 Gerar PDF A4 Profissional</button>
+
+            {% if perms.core.change_pauta %}
+                <a href="{% url 'editar_pauta' pauta.id %}" class="btn btn-warning btn-sm text-dark fw-bold">✏️ Editar Pauta</a>
+            {% endif %}
 
             {% if perms.core.add_materia %}
-                <a href="{% url 'escrever_materia' pauta.id %}" class="btn btn-primary">📝 Escrever / Editar</a>
+                <a href="{% url 'escrever_materia' pauta.id %}" class="btn btn-primary btn-sm">📝 Escrever Matéria</a>
             {% endif %}
             
             {% if perms.core.view_materia %}
-                <a href="{% url 'ler_materia' pauta.id %}" class="btn btn-success">📖 Ler Matéria</a>
+                <a href="{% url 'ler_materia' pauta.id %}" class="btn btn-success btn-sm">📖 Ler Matéria</a>
             {% endif %}
         </div>
     </div>

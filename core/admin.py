@@ -3,11 +3,12 @@ from .models import Pauta, Materia
 
 @admin.register(Pauta)
 class PautaAdmin(admin.ModelAdmin):
-    list_display = ('titulo', 'criada_por', 'status', 'data_criacao')
-    list_filter = ('status', 'data_criacao')
-    search_fields = ('titulo', 'descricao')
+    list_display = ('retranca', 'data', 'status', 'criada_por') # Limpo
+    search_fields = ('retranca', 'direcionamento')
+    list_filter = ('status', 'data')
 
 @admin.register(Materia)
 class MateriaAdmin(admin.ModelAdmin):
     list_display = ('pauta', 'autor', 'data_atualizacao')
-    search_fields = ('pauta__titulo', 'texto')
+    # Corrigido de 'pauta__titulo' para 'pauta__direcionamento' ou 'pauta__retranca'
+    search_fields = ('pauta__retranca', 'pauta__direcionamento', 'texto')

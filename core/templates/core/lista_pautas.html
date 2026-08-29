@@ -31,6 +31,9 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="fw-bold">Pautas Disponíveis</h1>
         <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">⬅️ Voltar ao Painel</a>
+        {% if perms.core.add_pauta %}
+            <a href="{% url 'criar_pauta' %}" class="btn btn-success btn-sm fw-bold">➕ Nova Pauta</a>
+        {% endif %}
     </div>
 
     <div>

@@ -1,7 +1,8 @@
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Pauta, Materia
-from .forms import MateriaForm
+from .models import Pauta, Materia, AgendaPauta
+from .forms import MateriaForm, PautaForm
+from django.utils import timezone
 
 @login_required(login_url='login')
 def home(request):
@@ -62,3 +63,65 @@ def ler_pauta(request, pauta_id):
     """Exibe os detalhes completos de uma pauta específica."""
     pauta = get_object_or_404(Pauta, id=pauta_id)
     return render(request, 'core/ler_pauta.html', {'pauta': pauta})
+
+# Adicione a nova função no corpo do arquivo:
+@login_required(login_url='login')
+@permission_required('core.add_pauta', raise_exception=True)
+def criar_pauta(request):
+    if request.method == 'POST':
+        form = PautaForm(request.POST)
+        if form.is_valid():
+            nova_pauta = form.save(commit=False)
+            nova_pauta.criada_por = request.user
+            nova_pauta.save()
+            
+            # Captura as listas de campos dinâmicos do HTML
+            locais = request.POST.getlist('local[]')
+            horarios = request.POST.getlist('horario[]')
+            entrevistados = request.POST.getlist('entrevistados[]')
+            
+            # Agrupa e salva os que foram preenchidos
+            for loc, hor, ent in zip(locais, horarios, entrevistados):
+                if loc or ent: # Só salva se tiver digitado algo
+                    horario_valido = hor if hor else None
+                    AgendaPauta.objects.create(
+                        pauta=nova_pauta, local=loc, horario=horario_valido, entrevistados=ent
+                    )
+                    
+            return redirect('lista_pautas')
+    else:
+        form = PautaForm()
+        
+    return render(request, 'core/pauta_form.html', {'form': form})
+
+@login_required(login_url='login')
+@permission_required('core.change_pauta', raise_exception=True)
+def editar_pauta(request, pauta_id):
+    pauta = get_object_or_404(Pauta, id=pauta_id)
+    
+    if request.method == 'POST':
+        form = PautaForm(request.POST, instance=pauta)
+        if form.is_valid():
+            pauta_atualizada = form.save(commit=False)
+            pauta_atualizada.editado_por = request.user
+            pauta_atualizada.data_edicao = timezone.now()
+            pauta_atualizada.save()
+            
+            # Atualiza as agendas dinâmicas: remove as antigas e recria com os novos dados enviados
+            pauta.agendas.all().delete()
+            locais = request.POST.getlist('local[]')
+            horarios = request.POST.getlist('horario[]')
+            entrevistados = request.POST.getlist('entrevistados[]')
+            
+            for loc, hor, ent in zip(locais, horarios, entrevistados):
+                if loc or ent:
+                    horario_valido = hor if hor else None
+                    AgendaPauta.objects.create(
+                        pauta=pauta_atualizada, local=loc, horario=horario_valido, entrevistados=ent
+                    )
+                    
+            return redirect('ler_pauta', pauta_id=pauta.id)
+    else:
+        form = PautaForm(instance=pauta)
+        
+    return render(request, 'core/pauta_form.html', {'form': form, 'pauta': pauta, 'editando': True})
