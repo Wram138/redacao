@@ -4,9 +4,12 @@ from .models import Materia, Pauta
 class MateriaForm(forms.ModelForm):
     class Meta:
         model = Materia
-        fields = ['texto']
+        # Adicione os status na lista de fields
+        fields = ['texto', 'status_edicao', 'status_exibicao'] 
         widgets = {
-            'texto': forms.Textarea(attrs={'class': 'form-control', 'rows': 15, 'placeholder': 'Escreva sua matéria aqui...'}),
+            'texto': forms.Textarea(attrs={'class': 'form-control', 'id': 'editor_materia'}),
+            'status_edicao': forms.Select(attrs={'class': 'form-select'}),
+            'status_exibicao': forms.Select(attrs={'class': 'form-select'}),
         }
 
 class PautaForm(forms.ModelForm):

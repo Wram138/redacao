@@ -9,6 +9,6 @@ class PautaAdmin(admin.ModelAdmin):
 
 @admin.register(Materia)
 class MateriaAdmin(admin.ModelAdmin):
-    list_display = ('pauta', 'autor', 'data_atualizacao')
-    # Corrigido de 'pauta__titulo' para 'pauta__direcionamento' ou 'pauta__retranca'
+    list_display = ('pauta', 'autor', 'status_edicao', 'status_exibicao', 'data_atualizacao')
+    list_filter = ('status_edicao', 'status_exibicao', 'data_atualizacao')
     search_fields = ('pauta__retranca', 'pauta__direcionamento', 'texto')

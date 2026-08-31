@@ -12,7 +12,7 @@
             padding: 25px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             margin-bottom: 20px;
-            border-left: 5px solid #0d6efd; /* Detalhe azul lateral */
+            border-left: 5px solid #0d6efd;
         }
     </style>
 </head>
@@ -28,23 +28,37 @@
             <div class="materia-card">
                 <div class="d-flex w-100 justify-content-between align-items-start">
                     <div>
-                        <!-- Exibindo a RETRANCA em destaque -->
                         <h4 class="fw-bold text-uppercase mb-1">
                             {{ materia.pauta.retranca }}
                         </h4>
-                        <p class="text-muted mb-2">Pauta: {{ materia.pauta.titulo }} | <strong>ID: #MAT-{{ materia.id }}</strong></p>
+                        <!-- Título removido; usando data da pauta no lugar -->
+                        <p class="text-muted mb-2">Data da Pauta: {{ materia.pauta.data|date:"d/m/Y"|default:"-" }} | <strong>ID: #MAT-{{ materia.id }}</strong></p>
                     </div>
                     <small class="text-muted text-end">Atualizada em<br>{{ materia.data_atualizacao|date:"d/m/Y H:i" }}</small>
                 </div>
                 
-                <p class="mb-3 small">Repórter: <strong>{{ materia.autor.username }}</strong></p>
+                <p class="mb-2 small">Repórter: <strong>{{ materia.autor.username }}</strong></p>
                 
-                <div class="mt-2 gap-2 d-flex">
-                    <!-- O Card agora tem os botões de ação -->
+                <!-- Novas Badges de Status -->
+                <div class="mb-3">
+                    {% if materia.status_edicao == 'editada' %}
+                        <span class="badge bg-success me-1">✏️ Editada</span>
+                    {% else %}
+                        <span class="badge bg-danger me-1">⚠️ Não Editada</span>
+                    {% endif %}
+
+                    {% if materia.status_exibicao == 'exibida' %}
+                        <span class="badge bg-primary">📺 Exibida</span>
+                    {% else %}
+                        <span class="badge bg-secondary">🗄️ Gaveta</span>
+                    {% endif %}
+                </div>
+                
+                <div class="mt-3 gap-2 d-flex">
                     <a href="{% url 'ler_materia' materia.pauta.id %}" class="btn btn-dark px-4">Ler Conteúdo</a>
                     
                     {% if perms.core.change_materia %}
-                        <a href="{% url 'escrever_materia' materia.pauta.id %}" class="btn btn-outline-primary px-4">Editar</a>
+                        <a href="{% url 'escrever_materia' materia.pauta.id %}" class="btn btn-outline-primary px-4">Editar / Status</a>
                     {% endif %}
                 </div>
             </div>

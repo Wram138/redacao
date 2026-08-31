@@ -27,13 +27,27 @@ class Pauta(models.Model):
         return self.titulo
 
 class Materia(models.Model):
-    pauta = models.ForeignKey(Pauta, on_delete=models.CASCADE, related_name="materias", verbose_name="Pauta de Origem")
+    STATUS_EDICAO_CHOICES = [
+        ('nao_editada', 'Não Editada'),
+        ('editada', 'Editada'),
+    ]
+    STATUS_EXIBICAO_CHOICES = [
+        ('gaveta', 'Gaveta'),
+        ('exibida', 'Exibida'),
+    ]
+
+    # Mantenha os campos que você já tem (como pauta, autor, texto, data_atualizacao...)
+    pauta = models.OneToOneField(Pauta, on_delete=models.CASCADE, related_name='materia')
+    autor = models.ForeignKey(User, on_delete=models.CASCADE)
     texto = models.TextField(verbose_name="Texto da Matéria")
-    autor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="materias_escritas", verbose_name="Autor (Repórter)")
-    data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Última Atualização")
+    data_atualizacao = models.DateTimeField(auto_now=True)
+    
+    # NOVOS CAMPOS:
+    status_edicao = models.CharField(max_length=20, choices=STATUS_EDICAO_CHOICES, default='nao_editada', verbose_name="Edição")
+    status_exibicao = models.CharField(max_length=20, choices=STATUS_EXIBICAO_CHOICES, default='gaveta', verbose_name="Exibição")
 
     def __str__(self):
-        return f"{self.pauta.titulo} - {self.autor.username}"
+        return f"Matéria: {self.pauta.retranca}"
 
 # NOVA TABELA: Vincula múltiplos locais e entrevistados a uma única Pauta
 class AgendaPauta(models.Model):
