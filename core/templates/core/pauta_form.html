@@ -47,25 +47,47 @@
                     
                     <h5 class="fw-bold mt-4 border-bottom pb-2">Locais e Entrevistados</h5>
                     <div id="agendas-container">
-                        <div class="agenda-item bg-light p-3 border rounded mb-3">
-                            <div class="row">
-                                <div class="col-md-4 mb-2">
-                                    <label class="fw-bold small">Local</label>
-                                    <input type="text" name="local[]" class="form-control form-control-sm">
+                        {% if pauta.agendas.all %}
+                            {% for agenda in pauta.agendas.all %}
+                                <div class="agenda-item bg-light p-3 border rounded mb-3">
+                                    <div class="row">
+                                        <div class="col-md-4 mb-2">
+                                            <label class="fw-bold small">Local</label>
+                                            <input type="text" name="local[]" class="form-control form-control-sm" value="{{ agenda.local|default:'' }}">
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <label class="fw-bold small">Horário</label>
+                                            <input type="time" name="horario[]" class="form-control form-control-sm" value="{{ agenda.horario|time:'H:i'|default:'' }}">
+                                        </div>
+                                        <div class="col-md-5 mb-2">
+                                            <label class="fw-bold small">Entrevistados</label>
+                                            <input type="text" name="entrevistados[]" class="form-control form-control-sm" value="{{ agenda.entrevistados|default:'' }}">
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-md-3 mb-2">
-                                    <label class="fw-bold small">Horário</label>
-                                    <input type="time" name="horario[]" class="form-control form-control-sm">
-                                </div>
-                                <div class="col-md-5 mb-2">
-                                    <label class="fw-bold small">Entrevistados</label>
-                                    <input type="text" name="entrevistados[]" class="form-control form-control-sm">
+                            {% endfor %}
+                        {% else %}
+                            <!-- Se for criação nova ou não tiver agendas, exibe uma linha vazia -->
+                            <div class="agenda-item bg-light p-3 border rounded mb-3">
+                                <div class="row">
+                                    <div class="col-md-4 mb-2">
+                                        <label class="fw-bold small">Local</label>
+                                        <input type="text" name="local[]" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-md-3 mb-2">
+                                        <label class="fw-bold small">Horário</label>
+                                        <input type="time" name="horario[]" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-md-5 mb-2">
+                                        <label class="fw-bold small">Entrevistados</label>
+                                        <input type="text" name="entrevistados[]" class="form-control form-control-sm">
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        {% endif %}
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-primary mb-4" onclick="adicionarAgenda()">➕ Adicionar Mais Locais</button>
-                    
+                                        
                     <div class="mb-4 mt-2">
                         <label class="form-label fw-bold">Direcionamento</label>
                         {{ form.direcionamento }}
