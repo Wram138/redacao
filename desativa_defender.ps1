@@ -1,45 +1,30 @@
-<#
+<# 
 .SYNOPSIS
-    Desativa Windows Defender e telemetria em ambiente de teste (VM).
+    Desativa Windows Defender e telemetria.
 .DESCRIPTION
-    Script para laboratório isolado. Executa:
-      - Verificação de Tamper Protection
-      - Desativação do Windows Defender (preferências, serviços, registro)
-      - Desativação de telemetria (DiagTrack, dmwappushservice, WerSvc)
-      - Desabilitação de tarefas agendadas de telemetria
-      - Verificação final do estado
-.NOTES
+    Script para desativar o Windows Defender e telemetria.
     Execute como Administrador. Requer PowerShell 5.1+.
     Recomendado: criar snapshot/ponto de restauração ANTES de executar.
+.NOTES
+    Versão sem verificação de ambiente virtual (isVM).
 #>
 
 #Requires -RunAsAdministrator
 $ErrorActionPreference = 'Continue'
 
-function Write-Section($text) {
-    Write-Host "`n===== $text =====" -ForegroundColor Cyan
-}
-function Write-OK($text)   { Write-Host "[OK]   $text" -ForegroundColor Green }
-function Write-Warn($text) { Write-Host "[AVISO] $text" -ForegroundColor Yellow }
-function Write-Err($text)  { Write-Host "[ERRO] $text" -ForegroundColor Red }
+function Write-Section($text) { Write-Host "`n===== $text =====" -ForegroundColor Cyan }
+function Write-OK($text)      { Write-Host "[OK] $text" -ForegroundColor Green }
+function Write-Warn($text)    { Write-Host "[AVISO] $text" -ForegroundColor Yellow }
+function Write-Err($text)     { Write-Host "[ERRO] $text" -ForegroundColor Red }
 
 # ---------------------------------------------------------------
-# 0. Snapshot informativo + verificação de Tamper Protection
+# 0. Verificação inicial (Tamper Protection)
 # ---------------------------------------------------------------
 Write-Section "0. Verificação inicial"
 
-$isVM = (Get-CimInstance Win32_ComputerSystem).Model -match 'Virtual|VMware|VirtualBox|Hyper-V|QEMU|KVM'
-if (-not $isVM) {
-    Write-Warn "Não foi detectada uma VM. Abortando por segurança."
-    Write-Warn "Se tiver certeza, remova a checagem 'isVM' do script."
-    return
-}
-Write-OK "Ambiente virtual detectado."
-
 try {
     $mpStatus = Get-MpComputerStatus -ErrorAction Stop
-    if ($mpStatus.TamperProtectionSource -ne 'None' -and
-        $mpStatus.TamperProtectionSource -ne $null) {
+    if ($mpStatus.TamperProtectionSource -ne 'None' -and $mpStatus.TamperProtectionSource -ne $null) {
         Write-Warn "Tamper Protection ativa (fonte: $($mpStatus.TamperProtectionSource))."
         Write-Warn "Tentando desativar via Set-MpPreference (só funciona em modo troubleshooting)..."
         try {
@@ -63,24 +48,24 @@ try {
 Write-Section "1. Preferências do Windows Defender"
 
 $mpPrefs = @{
-    'DisableRealtimeMonitoring'       = $true
-    'DisableBehaviorMonitoring'       = $true
-    'DisableIOAVProtection'           = $true
-    'DisableScriptScanning'           = $true
-    'DisableArchiveScanning'          = $true
-    'DisableIntrusionPreventionSystem'= $true
-    'DisableAntiSpyware'              = $true   # pode falhar em versões novas
-    'DisableAntiVirus'                = $true   # pode falhar em versões novas
-    'DisableCatchupFullScan'          = $true
-    'DisableCatchupQuickScan'         = $true
-    'DisableRemovableDriveScanning'   = $true
+    'DisableRealtimeMonitoring'      = $true
+    'DisableBehaviorMonitoring'      = $true
+    'DisableIOAVProtection'          = $true
+    'DisableScriptScanning'          = $true
+    'DisableArchiveScanning'         = $true
+    'DisableIntrusionPreventionSystem' = $true
+    'DisableAntiSpyware'             = $true   # pode falhar em versões novas
+    'DisableAntiVirus'               = $true   # pode falhar em versões novas
+    'DisableCatchupFullScan'         = $true
+    'DisableCatchupQuickScan'        = $true
+    'DisableRemovableDriveScanning'  = $true
     'DisableScanningMappedNetworkDrivesForFullScan' = $true
-    'DisableBlockAtFirstSeen'         = $true
-    'SubmitSamplesConsent'            = 2       # 2 = Never send
-    'MAPSReporting'                   = 0       # 0 = Disabled
-    'PUAProtection'                   = 0       # 0 = Disabled
-    'EnableFileHashComputation'       = $false
-    'CloudBlockLevel'                 = 0
+    'DisableBlockAtFirstSeen'        = $true
+    'SubmitSamplesConsent'           = 2       # 2 = Never send
+    'MAPSReporting'                  = 0       # 0 = Disabled
+    'PUAProtection'                  = 0       # 0 = Disabled
+    'EnableFileHashComputation'      = $false
+    'CloudBlockLevel'                = 0
 }
 
 foreach ($pref in $mpPrefs.GetEnumerator()) {
@@ -120,7 +105,7 @@ foreach ($svc in $services) {
     }
     try {
         Stop-Service -Name $name -Force -ErrorAction SilentlyContinue
-        Set-Service  -Name $name -StartupType Disabled -ErrorAction Stop
+        Set-Service -Name $name -StartupType Disabled -ErrorAction Stop
         Write-OK "$name ($($svc.Desc)) parado e desabilitado."
     } catch {
         Write-Err "$name : $($_.Exception.Message)"
@@ -133,26 +118,16 @@ foreach ($svc in $services) {
 Write-Section "3. Chaves de registro"
 
 $regKeys = @(
-    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender';
-       Name = 'DisableAntiSpyware'; Value = 1; Type = 'DWord' }
-    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender';
-       Name = 'DisableAntiVirus';   Value = 1; Type = 'DWord' }
-    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection';
-       Name = 'DisableRealtimeMonitoring'; Value = 1; Type = 'DWord' }
-    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection';
-       Name = 'DisableBehaviorMonitoring'; Value = 1; Type = 'DWord' }
-    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection';
-       Name = 'DisableOnAccessProtection'; Value = 1; Type = 'DWord' }
-    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection';
-       Name = 'DisableScanOnRealtimeEnable'; Value = 1; Type = 'DWord' }
-    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection';
-       Name = 'AllowTelemetry'; Value = 0; Type = 'DWord' }
-    @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection';
-       Name = 'AllowTelemetry'; Value = 0; Type = 'DWord' }
-    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting';
-       Name = 'Disabled'; Value = 1; Type = 'DWord' }
-    @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection';
-       Name = 'MaxTelemetryAllowed'; Value = 0; Type = 'DWord' }
+    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'; Name = 'DisableAntiSpyware'; Value = 1; Type = 'DWord' }
+    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'; Name = 'DisableAntiVirus';   Value = 1; Type = 'DWord' }
+    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection'; Name = 'DisableRealtimeMonitoring';       Value = 1; Type = 'DWord' }
+    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection'; Name = 'DisableBehaviorMonitoring';       Value = 1; Type = 'DWord' }
+    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection'; Name = 'DisableOnAccessProtection';      Value = 1; Type = 'DWord' }
+    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection'; Name = 'DisableScanOnRealtimeEnable';    Value = 1; Type = 'DWord' }
+    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection'; Name = 'AllowTelemetry';       Value = 0; Type = 'DWord' }
+    @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'; Name = 'AllowTelemetry'; Value = 0; Type = 'DWord' }
+    @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting'; Name = 'Disabled';    Value = 1; Type = 'DWord' }
+    @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection'; Name = 'MaxTelemetryAllowed'; Value = 0; Type = 'DWord' }
 )
 
 foreach ($rk in $regKeys) {
@@ -247,4 +222,4 @@ foreach ($svc in @('WinDefend','DiagTrack','dmwappushservice','WerSvc')) {
     }
 }
 
-Write-Host "`n===== Concluído. Reinicie a VM para aplicar todas as alterações. =====" -ForegroundColor Cyan
+Write-Host "`n===== Concluído. Reinicie o sistema para aplicar todas as alterações. =====" -ForegroundColor Cyan
